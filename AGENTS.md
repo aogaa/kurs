@@ -1,4 +1,4 @@
-# CLAUDE.md — Andresen & Aas kursportal
+# AGENTS.md — Andresen & Aas kursportal
 
 Dette dokumentet styrer alt arbeid i repoet. Les det før du gjør endringer.
 
@@ -74,7 +74,7 @@ npm run preview    # forhåndsvis produksjonsbygg lokalt
 
 ```
 /
-├── CLAUDE.md
+├── AGENTS.md
 ├── README.md
 ├── astro.config.mjs
 ├── package.json
@@ -156,7 +156,7 @@ Derfor:
 
 - [x] GitHub Pages aktivt, custom domene + HTTPS-sertifikat + Enforce HTTPS på.
 - [x] `images/hero.png` lagt til.
-- [x] CLAUDE.md (dette dokumentet).
+- [x] AGENTS.md (dette dokumentet).
 - [x] Astro scaffoldet, design-tokens (`src/styles/tokens.css`) og felles layout.
 - [x] Portal-forside (norsk `/` + engelsk `/en/`) med hero, kurs-seksjon, footer.
 - [x] Kurs-arkitektur: content collection + `CourseLayout` + dynamiske ruter.
@@ -177,7 +177,7 @@ Derfor:
 
 - **Vinkling:** bestå Kunnskapsprøven. Kurset har **ni leksjoner = modul 1–9**
   (modul 10 «eksamenstrening» er dekket av prøvesimulatoren, ikke en leksjon).
-- **Spørsmålsbank:** ~120–150 flervalgsspørsmål forfattes av Claude, men
+- **Spørsmålsbank:** ~120–150 flervalgsspørsmål forfattes av Codex, men
   **eier godkjenner jussen** før publisering (leveres i lesbare bolker, Fase 3).
 - **Eksamenstrekk:** 30 spørsmål trekkes **tema-vektet** (pensumvekt high/med/low)
   fra hele banken og **varierer hvert forsøk** (trekk skjer i nettleseren).
@@ -193,7 +193,7 @@ Derfor:
   automatisk alle ikke-`draft` kurs). Det er **ikke live** fordi alt ligger på
   branchen `kurs-skjenkebevilgning`; Pages bygger fra `main`. **Merge til `main` =
   publisering — og det skal skje først når kurset er ferdig.**
-- **Preview:** `.claude/launch.json` er pinnet til port 4388 (autoPort false) fordi
+- **Preview:** `.Codex/launch.json` er pinnet til port 4388 (autoPort false) fordi
   Astro ignorerer tildelt PORT og auto-økte ved konflikt med en annen server.
 
 ## 10. Arbeidsordre: Fase 2 – skriv leksjonene (utført)

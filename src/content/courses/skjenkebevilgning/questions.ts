@@ -200,11 +200,15 @@ export const questions: Question[] = [
     module: 6,
     topic: "Arrangementer",
     weight: "low",
-    question: "Hva er en ambulerende skjenkebevilling typisk ment for?",
-    options: ["Åpne festivaler", "Sluttede selskaper, som bryllup og jubileer", "Fast restaurantdrift"],
+    question: "Hvilken situasjon passer best med en ambulerende skjenkebevilling?",
+    options: [
+      "Et åpent festivalarrangement",
+      "Skjenking til deltakere i sluttet selskap, som bryllup eller jubileum",
+      "Fast restaurantdrift på et ordinært skjenkested",
+    ],
     correct: 1,
     explanation:
-      "Ambulerende bevilling er tenkt for sluttede selskaper (bryllup, jubileer). Åpne arrangementer som festivaler bruker normalt bevilling for en enkelt bestemt anledning.",
+      "Ambulerende bevilling kan brukes for skjenking til deltakere i sluttet selskap. Åpne festivalarrangementer bruker normalt bevilling for en enkelt bestemt anledning, ikke ambulerende bevilling.",
     ref: "Alkoholloven § 4-5",
   },
 
@@ -278,12 +282,16 @@ export const questions: Question[] = [
     module: 9,
     topic: "Særskilte forbud",
     weight: "low",
-    question: "Kan alkohol brukes som premie eller gevinst?",
-    options: ["Ja, hvis premien ikke selges", "Nei, det er forbudt å bruke alkohol som premie eller gevinst", "Ja, ved private arrangementer"],
+    question: "Hva er hovedregelen om alkohol som premie eller gevinst utenfor privat sammenheng?",
+    options: [
+      "Det er tillatt hvis premien ikke selges",
+      "Det er forbudt å bruke alkohol som premie eller gevinst",
+      "Det er alltid tillatt når arrangementet er lukket",
+    ],
     correct: 1,
     explanation:
-      "Det er forbudt å bruke alkohol som premie eller gevinst. At premien ikke selges, gjør det ikke lovlig.",
-    ref: "Alkoholloven § 8-6a",
+      "Hovedregelen er at alkohol ikke kan brukes som premie eller gevinst. Alkoholloven gjør unntak for bruk i privat sammenheng, men at premien ikke selges er ikke nok i seg selv.",
+    ref: "Alkoholloven § 8-6",
   },
 ];
 

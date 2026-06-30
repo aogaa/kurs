@@ -213,6 +213,35 @@ const lessonPath = (slug: string) => localePath(lang, `kurs/${courseSlug}/${slug
   .prose {
     max-width: 44rem;
   }
+  .prose :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: var(--space-md) 0 var(--space-sm);
+    font-size: 0.96rem;
+    line-height: 1.45;
+  }
+  .prose :global(th),
+  .prose :global(td) {
+    text-align: left;
+    vertical-align: top;
+    padding: 0.68rem 1.25rem 0.68rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .prose :global(th) {
+    color: var(--cream-100);
+    font-weight: 700;
+  }
+  .prose :global(td) {
+    color: var(--text);
+  }
+  .prose :global(th:first-child),
+  .prose :global(td:first-child) {
+    width: 38%;
+    min-width: 11rem;
+  }
+  .prose :global(tbody tr:last-child td) {
+    border-bottom-color: transparent;
+  }
   .pager {
     display: flex;
     justify-content: space-between;
