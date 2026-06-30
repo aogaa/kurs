@@ -17,7 +17,7 @@ export const ui = {
     "hero.eyebrow": "Andresen & Aas",
     "hero.title": "Kunnskap, foredlet.",
     "hero.lead":
-      "En samling kurs utviklet med omhu — for deg som vil lære på dypet, ikke på overflaten.",
+      "Det du må lære, gjort enkelt. Vi tar komplekse og nødvendige tema og gjør dem klare, lette og behagelige å forstå.",
     "hero.cta": "Se kursene",
     "courses.eyebrow": "Vårt utvalg",
     "courses.title": "Kurs",
@@ -33,7 +33,7 @@ export const ui = {
     "hero.eyebrow": "Andresen & Aas",
     "hero.title": "Knowledge, refined.",
     "hero.lead":
-      "A collection of courses crafted with care — for those who want to learn in depth, not at the surface.",
+      "What you need to know, made simple. We take complex and essential subjects and make them clear, light, and easy to grasp.",
     "hero.cta": "View courses",
     "courses.eyebrow": "Our selection",
     "courses.title": "Courses",
