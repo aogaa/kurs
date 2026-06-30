@@ -1,0 +1,54 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import Quiz from "../../../components/Quiz.astro";
+import { useTranslations, quizLabels, localePath } from "../../../i18n/ui";
+import { getBank } from "../../../lib/banks";
+
+export async function getStaticPaths() {
+  const courses = await getCollection("courses");
+  return courses
+    .filter((c) => c.data.lang === "nb" && !c.data.draft && c.data.hasPretest)
+    .map((c) => ({ params: { course: c.id }, props: { course: c } }));
+}
+
+const { course } = Astro.props;
+const lang = "nb" as const;
+const t = useTranslations(lang);
+const d = course.data;
+const bank = getBank(course.id);
+---
+
+<BaseLayout lang={lang} title={`${t("course.pretest")} — ${d.title}`} description={d.summary}>
+  <article class="pretest container">
+    <a class="back" href={localePath(lang, `kurs/${course.id}`)}>← {d.title}</a>
+    <p class="eyebrow">{t("course.pretest")}</p>
+    <h1>{d.title}</h1>
+    <hr class="rule-gold" />
+
+    <Quiz
+      id={`pretest-${course.id}`}
+      mode="pretest"
+      questions={bank}
+      labels={quizLabels(lang)}
+      count={d.pretestCount}
+      intro={t("course.pretestIntro")}
+    />
+  </article>
+</BaseLayout>
+
+<style>
+  .pretest {
+    padding-block: var(--space-lg) var(--space-xl);
+    max-width: 52rem;
+  }
+  .back {
+    display: inline-block;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-bottom: var(--space-md);
+  }
+  .back:hover {
+    color: var(--gold-500);
+  }
+</style>

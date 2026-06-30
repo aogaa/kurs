@@ -1,0 +1,108 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import Quiz from "../../../components/Quiz.astro";
+import { useTranslations, quizLabels, localePath } from "../../../i18n/ui";
+import { getBank } from "../../../lib/banks";
+import { getCourseLessons, lessonSlug } from "../../../lib/course";
+
+export async function getStaticPaths() {
+  const courses = await getCollection("courses");
+  return courses
+    .filter((c) => c.data.lang === "nb" && !c.data.draft && c.data.hasExam)
+    .map((c) => ({ params: { course: c.id }, props: { course: c } }));
+}
+
+const { course } = Astro.props;
+const lang = "nb" as const;
+const t = useTranslations(lang);
+const d = course.data;
+const bank = getBank(course.id);
+const lessonSlugs = (await getCourseLessons(course.id, lang)).map((l) => lessonSlug(l.id));
+---
+
+<BaseLayout lang={lang} title={`${t("course.exam")} — ${d.title}`} description={d.summary}>
+  <article class="exam container">
+    <a class="back" href={localePath(lang, `kurs/${course.id}`)}>← {d.title}</a>
+    <p class="eyebrow">{t("course.exam")}</p>
+    <h1>{d.title}</h1>
+    <hr class="rule-gold" />
+
+    <div data-exam-gate data-course={course.id} data-lessons={JSON.stringify(lessonSlugs)}>
+      <div class="exam-lock" data-exam-lock>
+        <p class="exam-lock__text">{t("course.examLockedLong")}</p>
+        <a class="quiz__btn quiz__btn--gold" href={localePath(lang, `kurs/${course.id}`)}>
+          {t("course.backToCourse")}
+        </a>
+      </div>
+      <div data-exam-content hidden>
+        <Quiz
+          id={`exam-${course.id}`}
+          mode="exam"
+          questions={bank}
+          labels={quizLabels(lang)}
+          count={d.examCount}
+          passMark={d.examPassMark}
+          minutes={d.examMinutes}
+          intro={t("course.examIntro")}
+        />
+      </div>
+    </div>
+
+    {d.disclaimer && <p class="disclaimer">{d.disclaimer}</p>}
+  </article>
+</BaseLayout>
+
+<script>
+  import { allCompleted } from "../../../lib/progress";
+
+  const gate = document.querySelector<HTMLElement>("[data-exam-gate]");
+  if (gate) {
+    const course = gate.dataset.course as string;
+    const lessons: string[] = JSON.parse(gate.dataset.lessons || "[]");
+    if (allCompleted(course, lessons)) {
+      const lock = gate.querySelector<HTMLElement>("[data-exam-lock]");
+      const content = gate.querySelector<HTMLElement>("[data-exam-content]");
+      if (lock) lock.hidden = true;
+      if (content) content.hidden = false;
+    }
+  }
+</script>
+
+<style>
+  .exam {
+    padding-block: var(--space-lg) var(--space-xl);
+    max-width: 52rem;
+  }
+  .back {
+    display: inline-block;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-bottom: var(--space-md);
+  }
+  .back:hover {
+    color: var(--gold-500);
+  }
+  .exam-lock {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: var(--space-lg) var(--space-md);
+    text-align: center;
+    margin-block: var(--space-md);
+  }
+  .exam-lock__text {
+    color: var(--text-muted);
+    max-width: 52ch;
+    margin: 0 auto var(--space-md);
+  }
+  .disclaimer {
+    margin-top: var(--space-lg);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-style: italic;
+    max-width: 60ch;
+  }
+</style>

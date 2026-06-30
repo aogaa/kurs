@@ -1,0 +1,573 @@
+---
+import type { Question, QuizMode } from "../lib/quiz";
+
+export interface QuizLabels {
+  start: string;
+  startExam: string;
+  next: string;
+  prev: string;
+  submit: string;
+  check: string;
+  retry: string;
+  correct: string;
+  wrong: string;
+  explanation: string;
+  question: string; // "Spørsmål"
+  of: string; // "av"
+  score: string; // "Du fikk {n} av {total} riktige"
+  passed: string;
+  failed: string;
+  passInfo: string; // "{count} spørsmål · {minutes} min · {pass} riktige for å bestå"
+  timeLeft: string; // "Tid igjen"
+  timeUp: string;
+  focusOn: string; // "Følg ekstra med på"
+  reviewTitle: string; // "Gjennomgang"
+  unanswered: string; // "Du har ubesvarte spørsmål"
+}
+
+interface Props {
+  id: string;
+  mode: QuizMode;
+  questions: Question[];
+  labels: QuizLabels;
+  /** Antall som trekkes (exam/pretest). Practice bruker alle. */
+  count?: number;
+  passMark?: number;
+  minutes?: number;
+  /** Kort intro over startknappen (exam/pretest). */
+  intro?: string;
+}
+
+const { id, mode, questions, labels, count, passMark, minutes, intro } = Astro.props;
+
+const config = {
+  mode,
+  count: count ?? questions.length,
+  passMark: passMark ?? 0,
+  minutes: minutes ?? 0,
+  labels,
+};
+---
+
+<div class="quiz" data-quiz id={id}>
+  <script type="application/json" data-quiz-config set:html={JSON.stringify(config)} />
+  <script type="application/json" data-quiz-data set:html={JSON.stringify(questions)} />
+  {
+    (mode === "exam" || mode === "pretest") && (
+      <div class="quiz__intro" data-quiz-intro>
+        {intro && <p class="quiz__introtext">{intro}</p>}
+        {mode === "exam" && passMark != null && (
+          <p class="quiz__meta">
+            {labels.passInfo
+              .replace("{count}", String(config.count))
+              .replace("{minutes}", String(minutes))
+              .replace("{pass}", String(passMark))}
+          </p>
+        )}
+        <button class="quiz__btn quiz__btn--gold" data-quiz-start type="button">
+          {mode === "exam" ? labels.startExam : labels.start}
+        </button>
+      </div>
+    )
+  }
+  <div class="quiz__mount" data-quiz-mount></div>
+</div>
+
+<script>
+  import type { Question, QuizMode } from "../lib/quiz";
+
+  interface Labels {
+    start: string; startExam: string; next: string; prev: string; submit: string;
+    check: string; retry: string; correct: string; wrong: string; explanation: string;
+    question: string; of: string; score: string; passed: string; failed: string;
+    passInfo: string; timeLeft: string; timeUp: string; focusOn: string;
+    reviewTitle: string; unanswered: string;
+  }
+  interface Config {
+    mode: QuizMode; count: number; passMark: number; minutes: number; labels: Labels;
+  }
+
+  const WEIGHT: Record<string, number> = { high: 3, med: 2, low: 1 };
+
+  function shuffle<T>(arr: T[]): T[] {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  // Vektet trekk uten tilbakelegging (Efraimidis–Spirakis): høyere pensumvekt
+  // gir høyere sjanse, og trekket varierer hver gang.
+  function weightedDraw(pool: Question[], n: number): Question[] {
+    if (n >= pool.length) return shuffle(pool);
+    return pool
+      .map((q) => ({ q, key: Math.pow(Math.random(), 1 / (WEIGHT[q.weight] || 1)) }))
+      .sort((a, b) => b.key - a.key)
+      .slice(0, n)
+      .map((x) => x.q);
+  }
+
+  type Prepared = { q: Question; options: { text: string; correct: boolean }[] };
+
+  function prepare(qs: Question[]): Prepared[] {
+    return qs.map((q) => ({
+      q,
+      options: shuffle(q.options.map((text, i) => ({ text, correct: i === q.correct }))),
+    }));
+  }
+
+  function el(tag: string, cls?: string, text?: string): HTMLElement {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  function initQuiz(root: HTMLElement) {
+    const cfg: Config = JSON.parse(
+      root.querySelector("[data-quiz-config]")!.textContent || "{}",
+    );
+    const bank: Question[] = JSON.parse(
+      root.querySelector("[data-quiz-data]")!.textContent || "[]",
+    );
+    const L = cfg.labels;
+    const mount = root.querySelector<HTMLElement>("[data-quiz-mount]")!;
+    const intro = root.querySelector<HTMLElement>("[data-quiz-intro]");
+    const startBtn = root.querySelector<HTMLButtonElement>("[data-quiz-start]");
+
+    function run() {
+      if (intro) intro.style.display = "none";
+      if (cfg.mode === "practice") renderInstant();
+      else renderPaged();
+    }
+
+    // ---- Practice (mini-quiz): alle spørsmål, umiddelbar tilbakemelding ----
+    function renderInstant() {
+      mount.innerHTML = "";
+      const prepared = prepare(shuffle(bank));
+      let answered = 0;
+      let correctCount = 0;
+
+      const scoreBar = el("div", "quiz__scorebar");
+      const scoreText = el("span", "quiz__scoretext", "");
+      scoreBar.appendChild(scoreText);
+      const updateScore = () => {
+        scoreText.textContent = `${correctCount} ${L.of} ${prepared.length} ${L.correct.toLowerCase()}`;
+        scoreBar.style.display = answered > 0 ? "" : "none";
+      };
+      updateScore();
+
+      prepared.forEach((p, idx) => {
+        const card = el("div", "quiz__card");
+        card.appendChild(el("p", "quiz__q", `${idx + 1}. ${p.q.question}`));
+        const opts = el("div", "quiz__opts");
+        let locked = false;
+        p.options.forEach((opt) => {
+          const b = el("button", "quiz__opt", opt.text) as HTMLButtonElement;
+          b.type = "button";
+          b.addEventListener("click", () => {
+            if (locked) return;
+            locked = true;
+            answered++;
+            if (opt.correct) correctCount++;
+            opts.querySelectorAll(".quiz__opt").forEach((o) => {
+              const ob = o as HTMLButtonElement;
+              ob.disabled = true;
+              const isRight = p.options[[...opts.children].indexOf(ob)]?.correct;
+              if (isRight) ob.classList.add("is-correct");
+            });
+            if (!opt.correct) b.classList.add("is-wrong");
+            const fb = el("div", "quiz__fb");
+            fb.appendChild(
+              el("span", opt.correct ? "quiz__tag is-correct" : "quiz__tag is-wrong",
+                 opt.correct ? L.correct : L.wrong),
+            );
+            const ex = el("p", "quiz__ex");
+            ex.innerHTML = `<strong>${L.explanation}:</strong> `;
+            ex.appendChild(document.createTextNode(p.q.explanation));
+            if (p.q.ref) ex.appendChild(el("span", "quiz__ref", ` (${p.q.ref})`));
+            fb.appendChild(ex);
+            card.appendChild(fb);
+            updateScore();
+          });
+          opts.appendChild(b);
+        });
+        card.appendChild(opts);
+        mount.appendChild(card);
+      });
+
+      mount.appendChild(scoreBar);
+      const retry = el("button", "quiz__btn", L.retry) as HTMLButtonElement;
+      retry.type = "button";
+      retry.addEventListener("click", renderInstant);
+      mount.appendChild(retry);
+    }
+
+    // ---- Paged (exam / pretest): ett spørsmål om gangen ----
+    function renderPaged() {
+      mount.innerHTML = "";
+      const drawn = weightedDraw(bank, cfg.count);
+      const prepared = prepare(drawn);
+      const answers: (number | null)[] = prepared.map(() => null);
+      let current = 0;
+      let timer: number | undefined;
+      let remaining = cfg.minutes * 60;
+
+      const head = el("div", "quiz__head");
+      const progress = el("span", "quiz__progress", "");
+      head.appendChild(progress);
+      const clock = el("span", "quiz__clock", "");
+      if (cfg.mode === "exam" && cfg.minutes > 0) head.appendChild(clock);
+      mount.appendChild(head);
+
+      const body = el("div", "quiz__body");
+      mount.appendChild(body);
+
+      const nav = el("div", "quiz__nav");
+      const prevBtn = el("button", "quiz__btn quiz__btn--ghost", L.prev) as HTMLButtonElement;
+      const nextBtn = el("button", "quiz__btn", L.next) as HTMLButtonElement;
+      prevBtn.type = "button"; nextBtn.type = "button";
+      prevBtn.addEventListener("click", () => { if (current > 0) { current--; paint(); } });
+      nextBtn.addEventListener("click", () => {
+        if (current < prepared.length - 1) { current++; paint(); } else finish();
+      });
+      nav.appendChild(prevBtn); nav.appendChild(nextBtn);
+      mount.appendChild(nav);
+
+      function fmt(s: number) {
+        const m = Math.floor(s / 60);
+        const ss = String(s % 60).padStart(2, "0");
+        return `${m}:${ss}`;
+      }
+      function tick() {
+        remaining--;
+        clock.textContent = `${L.timeLeft}: ${fmt(Math.max(0, remaining))}`;
+        if (remaining <= 0) { window.clearInterval(timer); finish(true); }
+      }
+      if (cfg.mode === "exam" && cfg.minutes > 0) {
+        clock.textContent = `${L.timeLeft}: ${fmt(remaining)}`;
+        timer = window.setInterval(tick, 1000);
+      }
+
+      function paint() {
+        const p = prepared[current];
+        progress.textContent = `${L.question} ${current + 1} ${L.of} ${prepared.length}`;
+        body.innerHTML = "";
+        body.appendChild(el("p", "quiz__q", p.q.question));
+        const opts = el("div", "quiz__opts");
+        p.options.forEach((opt, i) => {
+          const b = el("button", "quiz__opt", opt.text) as HTMLButtonElement;
+          b.type = "button";
+          if (answers[current] === i) b.classList.add("is-selected");
+          b.addEventListener("click", () => {
+            answers[current] = i;
+            opts.querySelectorAll(".quiz__opt").forEach((o) => o.classList.remove("is-selected"));
+            b.classList.add("is-selected");
+          });
+          opts.appendChild(b);
+        });
+        body.appendChild(opts);
+        prevBtn.disabled = current === 0;
+        nextBtn.textContent = current === prepared.length - 1 ? L.submit : L.next;
+      }
+
+      function finish(timeUp = false) {
+        if (timer) window.clearInterval(timer);
+        let correct = 0;
+        const wrong: Prepared[] = [];
+        prepared.forEach((p, i) => {
+          const sel = answers[i];
+          if (sel != null && p.options[sel].correct) correct++;
+          else wrong.push(p);
+        });
+        renderResult(correct, prepared.length, wrong, timeUp);
+      }
+
+      function renderResult(correct: number, total: number, wrong: Prepared[], timeUp: boolean) {
+        mount.innerHTML = "";
+        const result = el("div", "quiz__result");
+        if (cfg.mode === "exam") {
+          const passed = correct >= cfg.passMark;
+          result.appendChild(
+            el("span", `quiz__verdict ${passed ? "is-pass" : "is-fail"}`,
+               passed ? L.passed : L.failed),
+          );
+        }
+        result.appendChild(
+          el("p", "quiz__resultscore",
+             L.score.replace("{n}", String(correct)).replace("{total}", String(total))),
+        );
+        if (timeUp) result.appendChild(el("p", "quiz__timeup", L.timeUp));
+
+        // Pretest: vis hvilke tema brukeren bør følge ekstra med på.
+        if (cfg.mode === "pretest" && wrong.length) {
+          const topics = [...new Set(wrong.map((w) => w.q.topic))];
+          const focus = el("div", "quiz__focus");
+          focus.appendChild(el("strong", undefined, `${L.focusOn}:`));
+          const ul = el("ul");
+          topics.forEach((t) => ul.appendChild(el("li", undefined, t)));
+          focus.appendChild(ul);
+          result.appendChild(focus);
+        }
+
+        // Gjennomgang av feil (exam + pretest)
+        if (wrong.length) {
+          const rev = el("div", "quiz__review");
+          rev.appendChild(el("h3", undefined, L.reviewTitle));
+          wrong.forEach((p) => {
+            const item = el("div", "quiz__card");
+            item.appendChild(el("p", "quiz__q", p.q.question));
+            const right = p.options.find((o) => o.correct)!;
+            const ans = el("p", "quiz__answer");
+            ans.appendChild(el("span", "quiz__tag is-correct", L.correct));
+            ans.appendChild(document.createTextNode(" " + right.text));
+            item.appendChild(ans);
+            const ex = el("p", "quiz__ex");
+            ex.innerHTML = `<strong>${L.explanation}:</strong> `;
+            ex.appendChild(document.createTextNode(p.q.explanation));
+            if (p.q.ref) ex.appendChild(el("span", "quiz__ref", ` (${p.q.ref})`));
+            item.appendChild(ex);
+            rev.appendChild(item);
+          });
+          result.appendChild(rev);
+        }
+
+        const again = el("button", "quiz__btn quiz__btn--gold", L.retry) as HTMLButtonElement;
+        again.type = "button";
+        if (cfg.mode === "pretest") {
+          // Førtest: trekk et nytt sett umiddelbart.
+          again.addEventListener("click", renderPaged);
+        } else {
+          // Eksamen: tilbake til startskjermen for et nytt forsøk.
+          again.addEventListener("click", () => {
+            if (intro) intro.style.display = "";
+            mount.innerHTML = "";
+          });
+        }
+        result.appendChild(again);
+        mount.appendChild(result);
+        root.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      paint();
+    }
+
+    if (startBtn) startBtn.addEventListener("click", run);
+    else run(); // practice: ingen startskjerm
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-quiz]").forEach(initQuiz);
+</script>
+
+<!-- is:global fordi alternativene lages dynamisk i JS og ellers ikke treffes av scoped CSS. -->
+<style is:global>
+  .quiz {
+    margin-block: var(--space-md);
+  }
+  .quiz__intro {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: var(--space-md);
+    text-align: center;
+  }
+  .quiz__introtext {
+    color: var(--text-muted);
+    max-width: 48ch;
+    margin: 0 auto var(--space-sm);
+  }
+  .quiz__meta {
+    color: var(--gold-500);
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+    margin-bottom: var(--space-sm);
+  }
+  .quiz__btn {
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    letter-spacing: 0.04em;
+    color: var(--cream-100);
+    background: var(--blue-600);
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    padding: 0.7em 1.5em;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+  }
+  .quiz__btn:hover {
+    background: var(--blue-500);
+  }
+  .quiz__btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .quiz__btn--gold {
+    background: var(--gold-500);
+    color: var(--navy-900);
+    font-weight: 500;
+  }
+  .quiz__btn--gold:hover {
+    background: var(--gold-400);
+  }
+  .quiz__btn--ghost {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--text-muted);
+  }
+  .quiz__btn--ghost:hover {
+    background: var(--surface);
+    color: var(--text);
+  }
+  .quiz__card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: var(--space-md);
+    margin-bottom: var(--space-sm);
+  }
+  .quiz__q {
+    font-size: var(--step-1);
+    font-family: var(--font-serif);
+    margin-bottom: var(--space-sm);
+    color: var(--text);
+  }
+  .quiz__opts {
+    display: grid;
+    gap: 0.6rem;
+  }
+  .quiz__opt {
+    text-align: left;
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    color: var(--text);
+    background: var(--navy-900);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.8em 1em;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .quiz__opt:hover:not(:disabled) {
+    border-color: var(--border-gold);
+  }
+  .quiz__opt.is-selected {
+    border-color: var(--gold-500);
+    background: color-mix(in srgb, var(--gold-500) 12%, var(--navy-900));
+  }
+  .quiz__opt.is-correct {
+    border-color: #3f9d6a;
+    background: color-mix(in srgb, #3f9d6a 16%, var(--navy-900));
+  }
+  .quiz__opt.is-wrong {
+    border-color: #c75b5b;
+    background: color-mix(in srgb, #c75b5b 16%, var(--navy-900));
+  }
+  .quiz__opt:disabled {
+    cursor: default;
+  }
+  .quiz__fb {
+    margin-top: var(--space-sm);
+  }
+  .quiz__tag {
+    display: inline-block;
+    font-size: 0.66rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    padding: 0.2em 0.7em;
+    margin-right: 0.5em;
+  }
+  .quiz__tag.is-correct {
+    color: #8fe0b0;
+    border: 1px solid #3f9d6a;
+  }
+  .quiz__tag.is-wrong {
+    color: #f0a8a8;
+    border: 1px solid #c75b5b;
+  }
+  .quiz__ex {
+    color: var(--text-muted);
+    font-size: 0.92rem;
+    margin-top: 0.5em;
+  }
+  .quiz__ref {
+    color: var(--gold-500);
+    font-style: italic;
+  }
+  .quiz__scorebar {
+    text-align: center;
+    color: var(--gold-500);
+    letter-spacing: 0.06em;
+    margin: var(--space-sm) 0;
+  }
+  .quiz__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-sm);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+  }
+  .quiz__clock {
+    color: var(--gold-500);
+    font-variant-numeric: tabular-nums;
+  }
+  .quiz__nav {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+  }
+  .quiz__result {
+    text-align: center;
+  }
+  .quiz__verdict {
+    display: inline-block;
+    font-family: var(--font-serif);
+    font-size: var(--step-2);
+    padding: 0.2em 1em;
+    border-radius: var(--radius);
+    margin-bottom: var(--space-sm);
+  }
+  .quiz__verdict.is-pass {
+    color: #8fe0b0;
+    border: 1px solid #3f9d6a;
+  }
+  .quiz__verdict.is-fail {
+    color: #f0a8a8;
+    border: 1px solid #c75b5b;
+  }
+  .quiz__resultscore {
+    font-size: var(--step-1);
+    color: var(--text);
+  }
+  .quiz__timeup {
+    color: #f0a8a8;
+  }
+  .quiz__focus {
+    text-align: left;
+    border: 1px solid var(--border-gold);
+    border-radius: var(--radius);
+    padding: var(--space-sm) var(--space-md);
+    margin: var(--space-md) 0;
+    color: var(--text-muted);
+  }
+  .quiz__focus ul {
+    margin: 0.5em 0 0;
+    padding-left: 1.2em;
+  }
+  .quiz__review {
+    text-align: left;
+    margin-top: var(--space-md);
+  }
+  .quiz__review h3 {
+    font-family: var(--font-serif);
+    margin-bottom: var(--space-sm);
+  }
+  .quiz__answer {
+    margin-bottom: 0.3em;
+  }
+</style>

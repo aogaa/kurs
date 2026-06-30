@@ -1,0 +1,71 @@
+---
+import { getCollection, render } from "astro:content";
+import CourseLayout from "../../../layouts/CourseLayout.astro";
+import Quiz from "../../../components/Quiz.astro";
+import { useTranslations, quizLabels } from "../../../i18n/ui";
+import { lessonCourse, lessonSlug, getCourseLessons } from "../../../lib/course";
+import { getModuleQuestions } from "../../../lib/banks";
+
+export async function getStaticPaths() {
+  const lessons = await getCollection("lessons");
+  return lessons
+    .filter((l) => l.data.lang === "nb")
+    .map((l) => ({
+      params: { course: lessonCourse(l.id), lesson: lessonSlug(l.id) },
+      props: { lesson: l },
+    }));
+}
+
+const { lesson } = Astro.props;
+const lang = "nb" as const;
+const t = useTranslations(lang);
+
+const courseSlug = lessonCourse(lesson.id);
+const courses = await getCollection("courses");
+const course = courses.find((c) => c.id === courseSlug)!;
+
+const lessons = await getCourseLessons(courseSlug, lang);
+const lessonRefs = lessons.map((l) => ({
+  slug: lessonSlug(l.id),
+  title: l.data.title,
+  order: l.data.order,
+}));
+
+const { Content } = await render(lesson);
+const moduleQs = lesson.data.module ? getModuleQuestions(courseSlug, lesson.data.module) : [];
+---
+
+<CourseLayout
+  lang={lang}
+  courseSlug={courseSlug}
+  courseTitle={course.data.title}
+  lessons={lessonRefs}
+  currentSlug={lessonSlug(lesson.id)}
+  title={lesson.data.title}
+  summary={lesson.data.summary}
+>
+  <Content />
+
+  {
+    moduleQs.length > 0 && (
+      <section class="miniquiz">
+        <h2>{t("course.miniquiz")}</h2>
+        <Quiz
+          id={`mini-${lessonSlug(lesson.id)}`}
+          mode="practice"
+          questions={moduleQs}
+          labels={quizLabels(lang)}
+        />
+      </section>
+    )
+  }
+</CourseLayout>
+
+<style>
+  .miniquiz {
+    margin-top: var(--space-lg);
+  }
+  .miniquiz h2 {
+    font-family: var(--font-serif);
+  }
+</style>

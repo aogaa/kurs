@@ -1,0 +1,329 @@
+---
+import { getCollection, render } from "astro:content";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { useTranslations, localePath } from "../../../i18n/ui";
+import { getCourseLessons, lessonSlug } from "../../../lib/course";
+
+export async function getStaticPaths() {
+  const courses = await getCollection("courses");
+  return courses
+    .filter((c) => c.data.lang === "nb" && !c.data.draft)
+    .map((c) => ({ params: { course: c.id }, props: { course: c } }));
+}
+
+const { course } = Astro.props;
+const lang = "nb" as const;
+const t = useTranslations(lang);
+const { Content } = await render(course);
+const lessons = await getCourseLessons(course.id, lang);
+const d = course.data;
+
+const p = (path: string) => localePath(lang, `kurs/${course.id}/${path}`);
+
+// Leksjonslenker til den klientstyrte flyten (fremdrift + opplåsing).
+const lessonLinks = lessons.map((l) => ({ slug: lessonSlug(l.id), url: p(lessonSlug(l.id)) }));
+const firstLessonUrl = lessonLinks[0]?.url ?? p("");
+const stepNum = (n: number) => (d.hasPretest ? n : n - 1);
+---
+
+<BaseLayout lang={lang} title={`${d.title} — ${t("site.name")}`} description={d.summary}>
+  <article class="course-landing">
+    <header class="head">
+      <div class="container">
+        <p class="eyebrow">{t("site.name")}</p>
+        <h1>{d.title}</h1>
+        <hr class="rule-gold" />
+        <p class="summary">{d.summary}</p>
+        <div class="facts">
+          {d.access === "free" && <span class="tag">{t("courses.free")}</span>}
+          {d.level && <span class="fact">{d.level}</span>}
+          {d.duration && <span class="fact">{d.duration}</span>}
+        </div>
+      </div>
+    </header>
+
+    <div class="container body">
+      <div class="prose intro">
+        <Content />
+      </div>
+
+      <ol class="flow" data-flow data-course={course.id} data-lessons={JSON.stringify(lessonLinks)}>
+        {
+          d.hasPretest && (
+            <li class="flow-step">
+              <span class="flow-num">1</span>
+              <div class="flow-body">
+                <span class="flow-eyebrow">{t("course.pretest")}</span>
+                <a class="flow-link" href={p("fortest")}>
+                  {t("course.startPretest")}
+                </a>
+              </div>
+            </li>
+          )
+        }
+        <li class="flow-step">
+          <span class="flow-num">{stepNum(2)}</span>
+          <div class="flow-body">
+            <span class="flow-eyebrow">{t("course.lessons")}</span>
+            <a
+              class="flow-link"
+              data-flow-continue
+              data-start={t("course.startCourse")}
+              data-continue={t("course.continueCourse")}
+              data-review={t("course.reviewCourse")}
+              href={firstLessonUrl}
+            >
+              {t("course.startCourse")}
+            </a>
+            <span class="flow-progress" data-flow-progress data-template={t("course.progress")} />
+          </div>
+        </li>
+        {
+          d.hasExam && (
+            <li class="flow-step is-locked" data-flow-exam>
+              <span class="flow-num">{stepNum(3)}</span>
+              <div class="flow-body">
+                <span class="flow-eyebrow">{t("course.exam")}</span>
+                <a class="flow-link" data-flow-examlink href={p("eksamen")}>
+                  {t("course.startExam")}
+                </a>
+                <span class="flow-lock" data-flow-locktext>
+                  {t("course.examLocked")}
+                </span>
+              </div>
+            </li>
+          )
+        }
+      </ol>
+
+      <section class="contents" aria-label={t("course.lessons")}>
+        <p class="eyebrow">{t("course.lessons")}</p>
+        <ol class="toc">
+          {
+            lessons.map((l, i) => (
+              <li>
+                <a href={p(lessonSlug(l.id))}>
+                  <span class="num">{String(i + 1).padStart(2, "0")}</span>
+                  <span class="toc-text">
+                    <span class="toc-title">{l.data.title}</span>
+                    {l.data.summary && <span class="toc-sum">{l.data.summary}</span>}
+                  </span>
+                </a>
+              </li>
+            ))
+          }
+        </ol>
+      </section>
+
+      {d.disclaimer && <p class="disclaimer">{d.disclaimer}</p>}
+    </div>
+  </article>
+</BaseLayout>
+
+<script>
+  import { getCompleted } from "../../../lib/progress";
+
+  const flow = document.querySelector<HTMLElement>("[data-flow]");
+  if (flow) {
+    const course = flow.dataset.course as string;
+    const lessons: { slug: string; url: string }[] = JSON.parse(flow.dataset.lessons || "[]");
+    const done = new Set(getCompleted(course));
+    const total = lessons.length;
+    const doneCount = lessons.filter((l) => done.has(l.slug)).length;
+
+    // Steg 2: fremdriftstekst + "fortsett der du slapp"
+    const prog = flow.querySelector<HTMLElement>("[data-flow-progress]");
+    if (prog) {
+      prog.textContent = (prog.dataset.template || "")
+        .replace("{done}", String(doneCount))
+        .replace("{total}", String(total));
+    }
+    const cont = flow.querySelector<HTMLAnchorElement>("[data-flow-continue]");
+    if (cont && total) {
+      const nextLesson = lessons.find((l) => !done.has(l.slug)) || lessons[0];
+      cont.href = nextLesson.url;
+      cont.textContent =
+        doneCount === 0
+          ? (cont.dataset.start as string)
+          : doneCount < total
+            ? (cont.dataset.continue as string)
+            : (cont.dataset.review as string);
+    }
+
+    // Steg 3: lås opp prøvesimuleringen når alle leksjoner er fullført
+    const examStep = flow.querySelector<HTMLElement>("[data-flow-exam]");
+    if (examStep) {
+      if (total > 0 && doneCount === total) {
+        examStep.classList.remove("is-locked");
+        const lock = examStep.querySelector<HTMLElement>("[data-flow-locktext]");
+        if (lock) lock.hidden = true;
+      } else {
+        const link = examStep.querySelector<HTMLAnchorElement>("[data-flow-examlink]");
+        link?.addEventListener("click", (e) => {
+          e.preventDefault();
+          flow
+            .querySelector("[data-flow-continue]")
+            ?.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
+      }
+    }
+  }
+</script>
+
+<style>
+  .head {
+    padding-block: var(--space-xl) var(--space-md);
+  }
+  .summary {
+    font-size: var(--step-1);
+    color: var(--text-muted);
+    max-width: 52ch;
+  }
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+    align-items: center;
+  }
+  .tag {
+    font-size: 0.66rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold-500);
+    border: 1px solid var(--border-gold);
+    border-radius: 999px;
+    padding: 0.2em 0.8em;
+  }
+  .fact {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+  .fact + .fact::before {
+    content: "·";
+    margin-right: var(--space-sm);
+    color: var(--gold-500);
+  }
+  .body {
+    padding-bottom: var(--space-xl);
+  }
+  .intro {
+    max-width: 44rem;
+  }
+  .flow {
+    list-style: none;
+    margin: var(--space-lg) 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-sm);
+    counter-reset: none;
+  }
+  .flow-step {
+    display: flex;
+    gap: var(--space-md);
+    align-items: flex-start;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: var(--space-md);
+    transition: border-color 0.2s ease, opacity 0.2s ease;
+  }
+  .flow-step:not(.is-locked):hover {
+    border-color: var(--border-gold);
+  }
+  .flow-num {
+    font-family: var(--font-serif);
+    font-size: var(--step-2);
+    line-height: 1;
+    color: var(--gold-500);
+    min-width: 1.4ch;
+  }
+  .flow-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .flow-eyebrow {
+    font-size: 0.66rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold-500);
+  }
+  .flow-link {
+    font-family: var(--font-serif);
+    font-size: var(--step-1);
+    color: var(--text);
+    width: max-content;
+    max-width: 100%;
+  }
+  .flow-link:hover {
+    color: var(--gold-400);
+  }
+  .flow-progress,
+  .flow-lock {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+  .flow-step.is-locked {
+    opacity: 0.55;
+  }
+  .flow-step.is-locked .flow-num {
+    color: var(--text-muted);
+  }
+  .flow-step.is-locked .flow-link {
+    color: var(--text-muted);
+    cursor: not-allowed;
+  }
+  .flow-step:not(.is-locked) .flow-lock {
+    display: none;
+  }
+  .contents {
+    margin-top: var(--space-lg);
+  }
+  .toc {
+    list-style: none;
+    margin: var(--space-md) 0 0;
+    padding: 0;
+  }
+  .toc > li {
+    border-top: 1px solid var(--border);
+  }
+  .toc a {
+    display: flex;
+    gap: var(--space-md);
+    align-items: baseline;
+    padding: var(--space-sm) 0;
+    color: var(--text);
+  }
+  .toc a:hover .toc-title {
+    color: var(--gold-400);
+  }
+  .toc .num {
+    font-family: var(--font-serif);
+    font-size: var(--step-1);
+    color: var(--gold-500);
+    min-width: 2ch;
+  }
+  .toc-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+  .toc-title {
+    font-size: var(--step-1);
+    transition: color 0.15s ease;
+  }
+  .toc-sum {
+    color: var(--text-muted);
+    font-size: 0.92rem;
+  }
+  .disclaimer {
+    margin-top: var(--space-lg);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-style: italic;
+    max-width: 60ch;
+  }
+</style>
