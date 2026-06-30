@@ -170,6 +170,29 @@ Derfor:
   - [ ] **Fase 3 – full spørsmålsbank ~120–150**, tema-vektet, i godkjenningsbolker.
   - [ ] **Fase 4 – finpuss** (kurskort/cover, ev. engelsk, sluttverifisering).
 
+### Beslutninger som styrer kurset (avtalt med eier)
+
+- **Vinkling:** bestå Kunnskapsprøven. Kurset har **ni leksjoner = modul 1–9**
+  (modul 10 «eksamenstrening» er dekket av prøvesimulatoren, ikke en leksjon).
+- **Spørsmålsbank:** ~120–150 flervalgsspørsmål forfattes av Claude, men
+  **eier godkjenner jussen** før publisering (leveres i lesbare bolker, Fase 3).
+- **Eksamenstrekk:** 30 spørsmål trekkes **tema-vektet** (pensumvekt high/med/low)
+  fra hele banken og **varierer hvert forsøk** (trekk skjer i nettleseren).
+  Viser foreløpig 18 fordi prøvebanken er liten — blir 30 når full bank er på plass.
+- **Interaktivt:** mini-quiz per leksjon, avsluttende eksamen (30 sp / 60 min /
+  24 rette), førtest (nivåkartlegging). Case er lesestoff, ikke interaktive.
+- **Styrt flyt:** Førtest → ta kurset → prøvesimulering. Prøven er **låst til alle
+  leksjoner er fullført**. Fremdrift lagres i nettleseren (localStorage); ingen
+  innlogging. **Innlogging/resultatlagring = egen senere fase** (jf. §7). Den lokale
+  gatingen kan i prinsippet omgås av en teknisk bruker — ekte håndheving hører til
+  innloggingsfasen.
+- **Publisering:** kurset er allerede koblet til portalen (kurs-seksjonen viser
+  automatisk alle ikke-`draft` kurs). Det er **ikke live** fordi alt ligger på
+  branchen `kurs-skjenkebevilgning`; Pages bygger fra `main`. **Merge til `main` =
+  publisering — og det skal skje først når kurset er ferdig.**
+- **Preview:** `.claude/launch.json` er pinnet til port 4388 (autoPort false) fordi
+  Astro ignorerer tildelt PORT og auto-økte ved konflikt med en annen server.
+
 ## 10. Arbeidsordre: Fase 2 – skriv leksjonene (for en frisk økt)
 
 Målet er å skrive **alle de gjenstående åtte leksjonene i én bolk**. Alt under er
