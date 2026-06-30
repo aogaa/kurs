@@ -162,6 +162,72 @@ Derfor:
 - [x] Kurs-arkitektur: content collection + `CourseLayout` + dynamiske ruter.
 - [x] GitHub Actions-deploy-workflow (`.github/workflows/deploy.yml`).
 - [x] Pages-kilde byttet til "GitHub Actions" — portalen er LIVE på kurs.aogaa.no.
-- [ ] Første kurs lagt inn: **Skjenkebevilgning** (kildemateriale ligger i
-      `Skjenkebevilgning/kunnskapsbase/`: alkoholloven, alkoholforskriften,
-      krav til skjenkebevilgning). Skal bygges som kurs under `src/content/courses/`.
+- [~] Første kurs: **Kunnskapsprøven i alkoholloven – skjenkebevilling**
+      (slug `skjenkebevilgning`). Bygges i faser på branch `kurs-skjenkebevilgning`
+      (pushet til origin). Status per fase:
+  - [x] **Fase 1 – arkitektur + skall** (ferdig, verifisert i nettleser).
+  - [ ] **Fase 2 – de ni leksjonene** (1 av 9 skrevet). Se §10.
+  - [ ] **Fase 3 – full spørsmålsbank ~120–150**, tema-vektet, i godkjenningsbolker.
+  - [ ] **Fase 4 – finpuss** (kurskort/cover, ev. engelsk, sluttverifisering).
+
+## 10. Arbeidsordre: Fase 2 – skriv leksjonene (for en frisk økt)
+
+Målet er å skrive **alle de gjenstående åtte leksjonene i én bolk**. Alt under er
+selvstendig; du trenger ikke tidligere samtale.
+
+**Forarbeid (les disse først):**
+- `Skjenkebevilgning/kunnskapsbase/kursinnhold_kunnskapsproven_skjenkebevilling.md`
+  — **godkjent utkast** med modul 1–10 (læringsmål, kjerneinnhold, typiske feil,
+  case, kontrollspørsmål). Dette er primærkilden for leksjonsteksten.
+- `…/krav_til_skjenkebevilgning.md` — researchnotat (NB: inneholder
+  `citeturn…`-artefakter som IKKE skal med).
+- `…/alkoholloven.md` + `…/alkoholforskriften.md` — **verifiser alle tall/paragrafer
+  mot disse** (aldersgrenser, alkoholgrupper, tider, prikker, cl-mengder osv.).
+- Allerede skrevet mal: `src/content/courses/skjenkebevilgning/leksjoner/01-grunnbegreper-og-alkoholgrupper.md`
+  — **følg samme oppbygning og tone**.
+
+**Leksjonene som skal lages** (modul → leksjon, `order`/`module` = tallet):
+
+| Fil (`leksjoner/`) | order/module | Tema (fra utkastet) |
+|---|---|---|
+| `02-bevilling-roller-og-ansvar.md` | 2 | Bevillingssystemet, roller og ansvar |
+| `03-skjenking-i-praksis.md` | 3 | Skjenking i praksis |
+| `04-alder-legitimasjon-mindrearige.md` | 4 | Alder, legitimasjon og mindreårige |
+| `05-apenbart-pavirkede.md` | 5 | Åpenbart påvirkede personer |
+| `06-skjenketider-og-arrangementer.md` | 6 | Skjenketider, steder og arrangementer |
+| `07-internkontroll.md` | 7 | Internkontroll |
+| `08-kontroll-prikker-inndragning.md` | 8 | Kommunal kontroll, prikker og inndragning |
+| `09-reklame-og-saerforbud.md` | 9 | Reklameforbud og særskilte forbud |
+
+(Modul 10 «Eksamenstrening» er IKKE en leksjon — den er dekket av prøvesimulatoren.
+Kurset har bevisst **ni** leksjoner = modul 1–9.)
+
+**Frontmatter-mal** (hver fil):
+```yaml
+---
+title: "<modulens tittel>"
+order: <N>
+module: <N>
+lang: nb
+summary: "<én fristende setning til oversikten>"
+---
+```
+
+**Body-mal** (speil leksjon 01): `## Læringsmål` (punktliste) → kjerneinnhold med
+tabeller/konkrete eksempler → ev. et kort case som prosa → `## Typiske feil` →
+avslutt med `## Test deg selv` (mini-quizen dukker opp automatisk fra
+spørsmålsbanken via `module`). Norsk, eksklusiv og rolig tone; ikke salgsaktig.
+
+**Etterarbeid:** kjør `npm run build` (skal være grønt). Leksjonene dukker da
+automatisk opp i sidemeny, innholdsfortegnelse og den låste 3-stegs-flyten —
+ingen ekstra kobling trengs. Verifiser i preview at sidemeny + «Fullfør
+leksjonen» + opplåsing av prøven fungerer. **Ikke** rør portal-ramme, tokens eller
+quiz-motor med mindre noe er feil.
+
+**Arkitektur du bygger oppå (alt finnes):** `src/content/config.ts`
+(collections `courses` + `lessons`, glob-loader), `src/layouts/CourseLayout.astro`
+(sidemeny + forrige/neste + fullfør-knapp), `src/components/Quiz.astro`
+(klientside-motor, 3 moduser, `is:global`-CSS), ruter under
+`src/pages/kurs/[course]/`, fremdrift i `src/lib/progress.ts`, spørsmålsbank i
+`src/content/courses/skjenkebevilgning/questions.ts` (registrert i `src/lib/banks.ts`),
+i18n i `src/i18n/ui.ts`.
