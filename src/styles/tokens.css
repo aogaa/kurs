@@ -1,0 +1,49 @@
+/* Design-tokens for Andresen & Aas kursportal.
+   Bruk KUN disse variablene i komponenter — ingen løse hex-verdier. */
+
+:root {
+  /* --- Farger --- */
+  --navy-900: #07131f; /* sidebakgrunn, dypeste flate */
+  --navy-800: #0b1b2e; /* kort, seksjoner */
+  --navy-700: #102a44; /* hevet flate, kanter */
+  --blue-600: #15426b; /* aksent, hover, lenker */
+  --blue-500: #1e5a8a; /* lysere blå (fra vannet) */
+
+  --cream-100: #f6f0e2; /* primærtekst på mørk bunn / lyse flater */
+  --cream-200: #e7dcc4; /* sekundærtekst, dempede kanter */
+
+  --gold-500: #c9a24b; /* edelt aksentmetall — brukes sparsomt */
+  --gold-400: #dcba6b; /* hover/highlight på gull */
+
+  /* --- Semantiske roller --- */
+  --bg: var(--navy-900);
+  --surface: var(--navy-800);
+  --surface-raised: var(--navy-700);
+  --text: var(--cream-100);
+  --text-muted: var(--cream-200);
+  --accent: var(--gold-500);
+  --accent-hover: var(--gold-400);
+  --link: var(--gold-500);
+  --border: color-mix(in srgb, var(--cream-200) 16%, transparent);
+  --border-gold: color-mix(in srgb, var(--gold-500) 38%, transparent);
+
+  /* --- Typografi --- */
+  --font-serif: "Cormorant Garamond", "Georgia", "Times New Roman", serif;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --step-0: clamp(1rem, 0.96rem + 0.2vw, 1.125rem);
+  --step-1: clamp(1.2rem, 1.1rem + 0.5vw, 1.5rem);
+  --step-2: clamp(1.5rem, 1.3rem + 1vw, 2.1rem);
+  --step-3: clamp(2rem, 1.6rem + 2vw, 3.2rem);
+  --step-4: clamp(2.8rem, 2rem + 3.5vw, 5rem);
+
+  /* --- Rom & form --- */
+  --space-xs: 0.5rem;
+  --space-sm: 1rem;
+  --space-md: 2rem;
+  --space-lg: 4rem;
+  --space-xl: 7rem;
+  --maxw: 72rem;
+  --radius: 4px;
+  --shadow: 0 18px 50px -20px rgba(0, 0, 0, 0.65);
+}

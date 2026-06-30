@@ -1,0 +1,82 @@
+---
+import BaseLayout from "./BaseLayout.astro";
+import { Image } from "astro:assets";
+import { useTranslations, type Lang } from "../i18n/ui";
+
+interface Props {
+  lang: Lang;
+  title: string;
+  summary: string;
+  access: "free" | "paid";
+  cover?: ImageMetadata;
+}
+const { lang, title, summary, access, cover } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<BaseLayout lang={lang} title={`${title} — ${t("site.name")}`} description={summary}>
+  <article class="course">
+    <header class="course-head">
+      <div class="container">
+        <p class="eyebrow">{t("site.name")}</p>
+        <h1>{title}</h1>
+        <hr class="rule-gold" />
+        <p class="summary">{summary}</p>
+        {access === "free" && <span class="tag">{t("courses.free")}</span>}
+      </div>
+    </header>
+
+    {
+      cover && (
+        <div class="container">
+          <div class="cover">
+            <Image src={cover} alt="" widths={[800, 1254]} sizes="(max-width: 900px) 100vw, 900px" />
+          </div>
+        </div>
+      )
+    }
+
+    <div class="container">
+      <div class="prose">
+        <slot />
+      </div>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .course-head {
+    padding-block: var(--space-xl) var(--space-md);
+  }
+  .summary {
+    font-size: var(--step-1);
+    color: var(--text-muted);
+    max-width: 50ch;
+  }
+  .tag {
+    display: inline-block;
+    font-size: 0.66rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold-500);
+    border: 1px solid var(--border-gold);
+    border-radius: 999px;
+    padding: 0.2em 0.8em;
+  }
+  .cover {
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: var(--space-lg);
+    border: 1px solid var(--border);
+  }
+  .prose {
+    max-width: 44rem;
+  }
+  .prose :global(h2) {
+    margin-top: var(--space-lg);
+  }
+  .prose :global(p),
+  .prose :global(li) {
+    color: var(--text);
+  }
+</style>

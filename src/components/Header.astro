@@ -1,0 +1,98 @@
+---
+import { useTranslations, localePath, type Lang } from "../i18n/ui";
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<header class="site-header">
+  <div class="container bar">
+    <a class="brand" href={localePath(lang)}>
+      <span class="brand-name">{t("site.name")}</span>
+      <span class="brand-sub">{t("site.tagline")}</span>
+    </a>
+
+    <nav class="nav" aria-label="Hoved">
+      <a href={localePath(lang, "#kurs")}>{t("nav.courses")}</a>
+      <span class="lang" aria-label="Språk">
+        <a href={localePath("nb")} class={lang === "nb" ? "is-active" : ""}>NO</a>
+        <span class="sep">/</span>
+        <a href={localePath("en")} class={lang === "en" ? "is-active" : ""}>EN</a>
+      </span>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: color-mix(in srgb, var(--navy-900) 82%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-block: var(--space-sm);
+  }
+  .brand {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+    color: var(--cream-100);
+  }
+  .brand-name {
+    font-family: var(--font-serif);
+    font-size: 1.35rem;
+    letter-spacing: 0.02em;
+  }
+  .brand-sub {
+    font-size: 0.62rem;
+    letter-spacing: 0.34em;
+    text-transform: uppercase;
+    color: var(--gold-500);
+  }
+  .nav {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+  }
+  .nav > a {
+    color: var(--cream-200);
+    font-size: 0.82rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .nav > a:hover {
+    color: var(--cream-100);
+  }
+  .lang {
+    font-size: 0.74rem;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+  }
+  .lang a {
+    color: var(--cream-200);
+  }
+  .lang a.is-active {
+    color: var(--gold-500);
+  }
+  .lang .sep {
+    opacity: 0.4;
+    margin-inline: 0.35em;
+  }
+  @media (max-width: 520px) {
+    .brand-sub {
+      display: none;
+    }
+    .nav {
+      gap: var(--space-sm);
+    }
+  }
+</style>

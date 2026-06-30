@@ -1,0 +1,14 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Hero from "../../components/Hero.astro";
+import CoursesSection from "../../components/CoursesSection.astro";
+import { useTranslations } from "../../i18n/ui";
+
+const lang = "en" as const;
+const t = useTranslations(lang);
+---
+
+<BaseLayout lang={lang} title={`${t("site.name")} — ${t("site.tagline")}`} description={t("hero.lead")}>
+  <Hero lang={lang} />
+  <CoursesSection lang={lang} />
+</BaseLayout>

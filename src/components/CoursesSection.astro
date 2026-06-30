@@ -1,0 +1,56 @@
+---
+import { getCollection } from "astro:content";
+import CourseCard from "./CourseCard.astro";
+import { useTranslations, localePath, type Lang } from "../i18n/ui";
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+
+const courses = (await getCollection("courses"))
+  .filter((c) => c.data.lang === lang && !c.data.draft)
+  .sort((a, b) => a.data.order - b.data.order);
+---
+
+<section id="kurs" class="section">
+  <div class="container">
+    <p class="eyebrow">{t("courses.eyebrow")}</p>
+    <h2>{t("courses.title")}</h2>
+    <hr class="rule-gold" />
+
+    {
+      courses.length === 0 ? (
+        <p class="empty">{t("courses.empty")}</p>
+      ) : (
+        <div class="grid">
+          {courses.map((c) => (
+            <CourseCard
+              lang={lang}
+              title={c.data.title}
+              summary={c.data.summary}
+              href={localePath(lang, `kurs/${c.id}`)}
+              access={c.data.access}
+              cover={c.data.cover}
+            />
+          ))}
+        </div>
+      )
+    }
+  </div>
+</section>
+
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+    gap: var(--space-md);
+    margin-top: var(--space-md);
+  }
+  .empty {
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: var(--space-sm);
+  }
+</style>

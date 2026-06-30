@@ -1,0 +1,39 @@
+---
+import { useTranslations, type Lang } from "../i18n/ui";
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container">
+    <hr class="rule-gold" />
+    <p class="brand">{t("site.name")}</p>
+    <p class="fine">© {year} {t("site.name")}. {t("footer.rights")}</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    padding-block: var(--space-lg) var(--space-md);
+    border-top: 1px solid var(--border);
+    margin-top: var(--space-xl);
+  }
+  .rule-gold {
+    margin-inline: 0;
+  }
+  .brand {
+    font-family: var(--font-serif);
+    font-size: 1.25rem;
+    margin: 0 0 0.25rem;
+  }
+  .fine {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+  }
+</style>
