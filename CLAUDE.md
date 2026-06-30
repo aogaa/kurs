@@ -161,6 +161,7 @@ Derfor:
 - [x] Portal-forside (norsk `/` + engelsk `/en/`) med hero, kurs-seksjon, footer.
 - [x] Kurs-arkitektur: content collection + `CourseLayout` + dynamiske ruter.
 - [x] GitHub Actions-deploy-workflow (`.github/workflows/deploy.yml`).
-- [ ] Pages-kilde byttet til "GitHub Actions" (gjøres ved første Astro-deploy).
-- [ ] Commit + push til `main`.
-- [ ] Første kurs lagt inn.
+- [x] Pages-kilde byttet til "GitHub Actions" — portalen er LIVE på kurs.aogaa.no.
+- [ ] Første kurs lagt inn: **Skjenkebevilgning** (kildemateriale ligger i
+      `Skjenkebevilgning/kunnskapsbase/`: alkoholloven, alkoholforskriften,
+      krav til skjenkebevilgning). Skal bygges som kurs under `src/content/courses/`.
